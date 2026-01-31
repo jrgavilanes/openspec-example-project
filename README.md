@@ -38,13 +38,13 @@ src/
     ```
 
 ### Desarrollo y Ejecución
-*   **Iniciar el servidor:**
+*   **Modo desarrollo (Hot reload):**
     ```bash
-    bun run src/index.ts
+    bun run dev
     ```
-*   **Modo observación (Hot reload):**
+*   **Ejecución normal:**
     ```bash
-    bun --watch src/index.ts
+    bun run run
     ```
 
 ### Control de Calidad (Testing)
