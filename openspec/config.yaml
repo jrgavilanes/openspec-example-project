@@ -40,8 +40,7 @@ project_context: |
 rules:
   # Reglas para la etapa de Propuesta y Diseño
   design:
-    - Diseñar siempre pensando en Inyección de Dependencias (manual). 
-      Ej: El `Service` recibe el `Repository` en su constructor.
+    - "Diseñar siempre pensando en Inyección de Dependencias (manual). Ej: El `Service` recibe el `Repository` en su constructor."
     - Definir claramente los contratos de datos (Interfaces) antes de la lógica.
     - Separar la lógica de transporte (WebSocket messages) de la lógica de negocio.
   

@@ -1,13 +1,10 @@
 import { PartidoService } from "../service/PartidoService";
 import { Partido } from "../domain/Partido";
+import { PartidoActionSchema } from "./PartidoSchemas";
+import { AppError } from "../../../core/errors/AppError";
 
-// Shared Types (can be moved to a shared/types.ts later if needed, but keeping local for now or reusing existing if possible, but existing are in index.ts. Let's redefine for clean separation or import if we extract them.)
-// For now, I'll redefine them to break dependency on index.ts types.
-export type Action =
-  | { action: "create"; name: string }
-  | { action: "delete"; id: string }
-  | { action: "vote"; id: string };
-
+// Shared Types
+// ResponseMessage is still needed for outgoing messages
 export type ResponseMessage =
   | { type: "update"; partidos: Partido[] }
   | { type: "error"; message: string };
@@ -21,43 +18,31 @@ export class PartidoHandler {
   }
 
   handleMessage(ws: any, server: any, message: any) {
+    let data;
     try {
       const text = typeof message === "string" ? message : new TextDecoder().decode(message);
-      const data = JSON.parse(text) as Action;
-
-      switch (data.action) {
-        case "create":
-          try {
-            this.service.createPartido(data.name);
-            this.broadcastUpdate(server);
-          } catch (e: any) {
-            this.sendError(ws, e.message);
-          }
-          break;
-
-        case "delete":
-          try {
-            this.service.deletePartido(data.id);
-            this.broadcastUpdate(server);
-          } catch (e: any) {
-             this.sendError(ws, e.message);
-          }
-          break;
-
-        case "vote":
-          try {
-            this.service.votePartido(data.id);
-            this.broadcastUpdate(server);
-          } catch (e: any) {
-             this.sendError(ws, e.message);
-          }
-          break;
-
-        default:
-          this.sendError(ws, "Unknown action");
-      }
+      data = JSON.parse(text);
     } catch (e) {
-      this.sendError(ws, "Invalid JSON");
+      throw new AppError("Invalid JSON format", 400, "VALIDATION_ERROR");
+    }
+
+    const action = PartidoActionSchema.parse(data);
+
+    switch (action.action) {
+      case "create":
+        this.service.createPartido(action.name);
+        this.broadcastUpdate(server);
+        break;
+
+      case "delete":
+        this.service.deletePartido(action.id);
+        this.broadcastUpdate(server);
+        break;
+
+      case "vote":
+        this.service.votePartido(action.id);
+        this.broadcastUpdate(server);
+        break;
     }
   }
 
@@ -65,14 +50,6 @@ export class PartidoHandler {
     const response: ResponseMessage = {
       type: "update",
       partidos: this.service.getAllPartidos(),
-    };
-    ws.send(JSON.stringify(response));
-  }
-
-  private sendError(ws: any, message: string) {
-    const response: ResponseMessage = {
-      type: "error",
-      message,
     };
     ws.send(JSON.stringify(response));
   }

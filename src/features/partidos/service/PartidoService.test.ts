@@ -53,7 +53,7 @@ describe("PartidoService", () => {
   });
 
   it("should throw error when voting for non-existent partido", () => {
-    expect(() => service.votePartido("non-existent")).toThrow("Partido not found");
+    expect(() => service.votePartido("non-existent")).toThrow("Partido with id non-existent not found");
   });
 
   it("should delete a partido", () => {
@@ -63,6 +63,6 @@ describe("PartidoService", () => {
   });
 
   it("should throw error when deleting non-existent partido", () => {
-    expect(() => service.deletePartido("non-existent")).toThrow("Partido not found");
+    expect(() => service.deletePartido("non-existent")).toThrow("Partido with id non-existent not found");
   });
 });

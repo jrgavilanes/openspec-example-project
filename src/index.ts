@@ -1,6 +1,7 @@
 import { PartidoRepository } from "./features/partidos/repository/PartidoRepository";
 import { PartidoService } from "./features/partidos/service/PartidoService";
 import { PartidoHandler } from "./features/partidos/delivery/PartidoHandler";
+import { handleError } from "./core/errors/ErrorHandler";
 
 // Dependency Injection
 const partidoRepo = new PartidoRepository();
@@ -18,8 +19,12 @@ const server = Bun.serve<{}>({
     open(ws) {
       partidoHandler.handleConnection(ws, server);
     },
-    message(ws, message) {
-      partidoHandler.handleMessage(ws, server, message);
+    async message(ws, message) {
+      try {
+        partidoHandler.handleMessage(ws, server, message);
+      } catch (error) {
+        handleError(ws, error);
+      }
     },
   },
 });
