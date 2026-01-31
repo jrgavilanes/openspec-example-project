@@ -1,8 +1,10 @@
 import { ServerWebSocket } from "bun";
 import { ZodError } from "zod";
 import { AppError } from "./AppError";
+import { Logger, LogCategory } from "../utils/Logger";
 
 interface ErrorResponse {
+  type: "ERROR";
   success: false;
   error: {
     code: string;
@@ -11,11 +13,18 @@ interface ErrorResponse {
   };
 }
 
-export function handleError(ws: ServerWebSocket<unknown>, error: unknown) {
+export function handleError(ws: ServerWebSocket<{ socketId: string }>, error: unknown) {
   let response: ErrorResponse;
+  const socketId = ws.data?.socketId;
 
   if (error instanceof AppError) {
+    Logger.warn(LogCategory.API, "APP_ERROR", {
+      socketId,
+      message: error.message,
+      metadata: { code: error.errorCode, details: error.details },
+    });
     response = {
+      type: "ERROR",
       success: false,
       error: {
         code: error.errorCode,
@@ -24,7 +33,12 @@ export function handleError(ws: ServerWebSocket<unknown>, error: unknown) {
       },
     };
   } else if (error instanceof ZodError) {
+    Logger.warn(LogCategory.API, "VALIDATION_ERROR", {
+      socketId,
+      metadata: { errors: error.errors },
+    });
     response = {
+      type: "ERROR",
       success: false,
       error: {
         code: "VALIDATION_ERROR",
@@ -33,8 +47,9 @@ export function handleError(ws: ServerWebSocket<unknown>, error: unknown) {
       },
     };
   } else {
-    console.error("Internal Server Error:", error);
+    Logger.critical(LogCategory.SYSTEM, "INTERNAL_SERVER_ERROR", error as Error, { socketId });
     response = {
+      type: "ERROR",
       success: false,
       error: {
         code: "INTERNAL_SERVER_ERROR",

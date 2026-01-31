@@ -1,4 +1,4 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Standard API Error Format
 The system SHALL return a standardized error JSON structure for all failures, including validation errors, application logic errors, and unexpected server exceptions. For WebSocket communications, the message SHALL include a `type` field set to `ERROR`.
