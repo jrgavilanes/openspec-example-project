@@ -65,9 +65,7 @@
             statusDiv.textContent = "✅ Conectado al Servidor WS";
             statusDiv.className = "status connected";
             log("Conexión establecida");
-            // Pedimos la lista inicial por si acaso
-            // Nota: Según tu spec, al conectar debería mandar la lista o podemos pedirla
-             ws.send(JSON.stringify({ action: "read" })); 
+            // El servidor envía automáticamente la lista al conectar (según spec de partidos-crud)
         };
 
         ws.onclose = () => {
@@ -80,15 +78,17 @@
             const msg = JSON.parse(event.data);
             log("RECIBIDO: " + JSON.stringify(msg));
 
-            // Según tu spec, el servidor manda { type: "update", partidos: [...] }
-            // O a veces responde directamente a una acción. 
-            // Adaptamos la lógica para renderizar siempre que haya un array de partidos.
+            // Manejo de errores estandarizado (type: "ERROR")
+            if (msg.type === "ERROR" || msg.success === false) {
+                const errorMsg = msg.error ? msg.error.message : "Error desconocido";
+                const errorCode = msg.error ? msg.error.code : "UNKNOWN";
+                alert(`⚠️ Error [${errorCode}]: ${errorMsg}`);
+                return;
+            }
             
+            // Actualización de lista (type: "update")
             if (msg.type === "update" && msg.partidos) {
                 renderList(msg.partidos);
-            } else if (msg.data && Array.isArray(msg.data)) {
-                 // Caso fallback si la respuesta es tipo { status: "ok", data: [...] }
-                renderList(msg.data);
             }
         };
 

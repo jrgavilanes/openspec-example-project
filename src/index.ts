@@ -25,9 +25,7 @@ const server = Bun.serve<{ socketId: string }>({
       partidoHandler.handleConnection(ws, server);
     },
     async message(ws, message) {
-      // PartidoHandler should eventually use safeHandle, 
-      // but for now we keep the direct call as we refactor.
-      await partidoHandler.handleMessage(ws, server, message);
+      await partidoHandler.handleMessage(ws, message, server);
     },
     close(ws, code, reason) {
       const { socketId } = ws.data;

@@ -19,7 +19,7 @@ export class PartidoHandler {
   }
 
   handleMessage = safeHandle<{ socketId: string }>(
-    async (ws: ServerWebSocket<{ socketId: string }>, message: string | Buffer) => {
+    async (ws: ServerWebSocket<{ socketId: string }>, message: string | Buffer, server: Server) => {
       let data;
       const text = typeof message === "string" ? message : new TextDecoder().decode(message);
       
