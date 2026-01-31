@@ -1,20 +1,57 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# ------------------------------------------------------------------
+# CONTEXTO GLOBAL DEL PROYECTO
+# La IA lee esto antes de planificar cualquier cambio.
+# ------------------------------------------------------------------
+project_context: |
+  ## Project Domain
+  Sistema de votación en tiempo real para partidos políticos (CRUD + Voting).
+  
+  ## Tech Stack (Strict)
+  - **Runtime:** Bun (Latest).
+  - **Language:** TypeScript (Strict mode).
+  - **Server:** Native `Bun.serve` con `websocket` handler. 
+    - ⛔ PROHIBIDO: Express, Fastify, ws (npm), socket.io.
+  - **Testing:** `bun:test` (Native runner).
+  - **Utils:** `uuid` para IDs.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  ## Architecture Strategy: Feature-Based Clean Architecture
+  El código debe abandonar el enfoque monolítico.
+  Estructura de carpetas requerida para nuevas features o refactors:
+
+  `src/`
+  ├── `index.ts` → Entrypoint. Solo configuración de server y routing básico.
+  └── `features/`
+      └── `<feature-name>/` (ej: partidos)
+          ├── `domain/`     → Entidades e Interfaces (Puro TS, sin deps).
+          ├── `repository/` → Acceso a datos (Implementa interfaces del dominio).
+          ├── `service/`    → Lógica de negocio (Casos de uso, validaciones).
+          └── `delivery/`   → Handlers de WebSocket (Parseo de request/response).
+
+  ## Data Persistence Strategy
+  - **Actual:** In-memory (Map/Array) usando el patrón Repository.
+  - **Futuro:** SQLite. 
+  - **Regla:** Los Repositorios deben retornar `Promise` aunque la implementación actual sea síncrona (in-memory), para facilitar la migración futura a BD sin romper los Servicios.
+
+# ------------------------------------------------------------------
+# REGLAS POR ARTEFACTO (GUARDARRAÍLES)
+# ------------------------------------------------------------------
+rules:
+  # Reglas para la etapa de Propuesta y Diseño
+  design:
+    - Diseñar siempre pensando en Inyección de Dependencias (manual). 
+      Ej: El `Service` recibe el `Repository` en su constructor.
+    - Definir claramente los contratos de datos (Interfaces) antes de la lógica.
+    - Separar la lógica de transporte (WebSocket messages) de la lógica de negocio.
+  
+  # Reglas para la etapa de Especificaciones
+  specs:
+    - Definir payloads de entrada y salida JSON exactos.
+    - Manejo de errores explícito: El sistema nunca debe crashear por un input malformado.
+  
+  # Reglas para la etapa de Tareas e Implementación
+  tasks:
+    - Mantener los imports limpios y relativos.
+    - Cada refactor debe mantener o mejorar la cobertura de tests si existen.
+    - Usar `crypto.randomUUID()` nativo o `uuid` v4.

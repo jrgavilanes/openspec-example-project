@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Manual Partidos WS</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .status { padding: 10px; border-radius: 4px; margin-bottom: 20px; font-weight: bold; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        
+        .control-panel { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; color: white; font-weight: bold; }
+        .btn-create { background-color: #007bff; }
+        .btn-vote { background-color: #28a745; margin-right: 5px; }
+        .btn-delete { background-color: #dc3545; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f1f1f1; }
+        
+        #log { background: #333; color: #0f0; padding: 10px; border-radius: 5px; height: 150px; overflow-y: scroll; font-family: monospace; font-size: 12px; margin-top: 30px;}
+    </style>
+</head>
+<body>
+
+    <h1>🗳️ Sistema de Votos (Test Manual)</h1>
+
+    <div id="status" class="status disconnected">Desconectado...</div>
+
+    <div class="control-panel">
+        <h3>Crear Nuevo Partido</h3>
+        <input type="text" id="partyName" placeholder="Nombre del partido (ej. Partido AI)">
+        <button class="btn-create" onclick="createParty()">Crear Partido</button>
+    </div>
+
+    <h3>Listado en Tiempo Real</h3>
+    <table id="partyTable">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Votos</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody id="partyList">
+            </tbody>
+    </table>
+
+    <h3>Log de Eventos (Raw JSON)</h3>
+    <div id="log"></div>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:3000");
+        const statusDiv = document.getElementById('status');
+        const listBody = document.getElementById('partyList');
+        const logDiv = document.getElementById('log');
+
+        // --- WebSocket Handlers ---
+
+        ws.onopen = () => {
+            statusDiv.textContent = "✅ Conectado al Servidor WS";
+            statusDiv.className = "status connected";
+            log("Conexión establecida");
+            // Pedimos la lista inicial por si acaso
+            // Nota: Según tu spec, al conectar debería mandar la lista o podemos pedirla
+             ws.send(JSON.stringify({ action: "read" })); 
+        };
+
+        ws.onclose = () => {
+            statusDiv.textContent = "❌ Desconectado";
+            statusDiv.className = "status disconnected";
+            log("Conexión perdida");
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            log("RECIBIDO: " + JSON.stringify(msg));
+
+            // Según tu spec, el servidor manda { type: "update", partidos: [...] }
+            // O a veces responde directamente a una acción. 
+            // Adaptamos la lógica para renderizar siempre que haya un array de partidos.
+            
+            if (msg.type === "update" && msg.partidos) {
+                renderList(msg.partidos);
+            } else if (msg.data && Array.isArray(msg.data)) {
+                 // Caso fallback si la respuesta es tipo { status: "ok", data: [...] }
+                renderList(msg.data);
+            }
+        };
+
+        // --- Funciones de Acción ---
+
+        function createParty() {
+            const input = document.getElementById('partyName');
+            if (!input.value) return alert("Escribe un nombre");
+            
+            const payload = { action: "create", name: input.value };
+            ws.send(JSON.stringify(payload));
+            log("ENVIADO: " + JSON.stringify(payload));
+            input.value = "";
+        }
+
+        function voteParty(id) {
+            const payload = { action: "vote", id: id };
+            ws.send(JSON.stringify(payload));
+            log("ENVIADO: " + JSON.stringify(payload));
+        }
+
+        function deleteParty(id) {
+            if(!confirm("¿Seguro que quieres borrar este partido?")) return;
+            const payload = { action: "delete", id: id };
+            ws.send(JSON.stringify(payload));
+            log("ENVIADO: " + JSON.stringify(payload));
+        }
+
+        // --- Renderizado ---
+
+        function renderList(partidos) {
+            listBody.innerHTML = "";
+            partidos.forEach(p => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td><small>${p.id.substring(0, 8)}...</small></td>
+                    <td><strong>${p.name}</strong></td>
+                    <td style="font-size: 1.2em">${p.numvotes}</td>
+                    <td>
+                        <button class="btn-vote" onclick="voteParty('${p.id}')">Vote (+1)</button>
+                        <button class="btn-delete" onclick="deleteParty('${p.id}')">Delete</button>
+                    </td>
+                `;
+                listBody.appendChild(row);
+            });
+        }
+
+        function log(text) {
+            const p = document.createElement("div");
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            logDiv.prepend(p);
+        }
+    </script>
+</body>
+</html>
